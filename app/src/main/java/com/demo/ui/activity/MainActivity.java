@@ -180,9 +180,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             final HitsModel model = mArrayList.get(position);
 
             holder.rowBinding.tvTitle.setText(model.getTitle());
-
-            //holder.rowBinding.tvTime.setText(CommonUtils.UTCtoCurrentTimeZone(model.getCreatedAt().substring(0,23)));
-            holder.rowBinding.tvTime.setText(CommonUtils.getDateTime(model.getCreatedAtI()));
+            // here we got time format wrong : yyyy-MM-dd'T'HH:mm:ss.SSSZ so just put date
+            holder.rowBinding.tvTime.setText(model.getCreatedAt().substring(0,19));
 
             if (model.getSelected()) {
                 holder.rowBinding.switchBtn.setChecked(true);
@@ -221,49 +220,51 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     private void apiCallForGetData() {
 
-        if (!isPullToRefresh)
-            CommonUtils.showProgressDialog(context);
+        if (page != 50) {
+            if (!isPullToRefresh)
+                CommonUtils.showProgressDialog(context);
 
-        ApiClient.getClient().create(ApiInterface.class).getData("story", "" + page)
-                .enqueue(new Callback<MainModel>() {
-                    @Override
-                    public void onResponse(Call<MainModel> call, Response<MainModel> response) {
-                        CommonUtils.hideProgressDialog();
-                        if (isPullToRefresh) {
-                            isPullToRefresh = false;
-                            mBinder.swipeContainer.setRefreshing(false);
-                        }
-
-                        if (response.isSuccessful()) {
-
-                            mSubArrayList = new ArrayList<>();
-                            mSubArrayList = response.body().getHits();
-                            if (mSubArrayList.size() > 0) {
-                                mBinder.swipeContainer.setVisibility(View.VISIBLE);
-                                mBinder.recyclerView.setVisibility(View.VISIBLE);
-                                mMainArrayList.addAll(mSubArrayList);
-                                setAdapter();
-                            } else {
-                                if (page == 50) {
-                                    mBinder.swipeContainer.setVisibility(View.VISIBLE);
-                                    mBinder.recyclerView.setVisibility(View.GONE);
-                                }
+            ApiClient.getClient().create(ApiInterface.class).getData("story", "" + page)
+                    .enqueue(new Callback<MainModel>() {
+                        @Override
+                        public void onResponse(Call<MainModel> call, Response<MainModel> response) {
+                            CommonUtils.hideProgressDialog();
+                            if (isPullToRefresh) {
+                                isPullToRefresh = false;
+                                mBinder.swipeContainer.setRefreshing(false);
                             }
 
-                        } else {
-                            Toast.makeText(context, "Error", Toast.LENGTH_LONG).show();
-                        }
-                    }
+                            if (response.isSuccessful()) {
 
-                    @Override
-                    public void onFailure(Call<MainModel> call, Throwable t) {
-                        if (!isPullToRefresh)
-                            CommonUtils.hideProgressDialog();
-                        else {
-                            isPullToRefresh = false;
-                            mBinder.swipeContainer.setRefreshing(false);
+                                mSubArrayList = new ArrayList<>();
+                                mSubArrayList = response.body().getHits();
+                                if (mSubArrayList.size() > 0) {
+                                    mBinder.swipeContainer.setVisibility(View.VISIBLE);
+                                    mBinder.recyclerView.setVisibility(View.VISIBLE);
+                                    mMainArrayList.addAll(mSubArrayList);
+                                    setAdapter();
+                                } else {
+                                    if (page == 50) {
+                                        mBinder.swipeContainer.setVisibility(View.VISIBLE);
+                                        mBinder.recyclerView.setVisibility(View.GONE);
+                                    }
+                                }
+
+                            } else {
+                                Toast.makeText(context, "Error", Toast.LENGTH_LONG).show();
+                            }
                         }
-                    }
-                });
+
+                        @Override
+                        public void onFailure(Call<MainModel> call, Throwable t) {
+                            if (!isPullToRefresh)
+                                CommonUtils.hideProgressDialog();
+                            else {
+                                isPullToRefresh = false;
+                                mBinder.swipeContainer.setRefreshing(false);
+                            }
+                        }
+                    });
+        }
     }
 }
